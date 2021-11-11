@@ -8,6 +8,15 @@
 | Sorted Set    | 压缩列表  跳表      |
 | Set           | 哈希表   整数数组   |
 	
+	
+| 数据结构 | 内部编码            |
+| -------- | ------------------- |
+| string   | raw, int, embstr    |
+| hash     | hashtable, ziplist  |
+| lish     | linkedlist, ziplist |
+| set      | hashtable, intset   |
+| zset      |skiplist ziplist                  |
+
 TODO REVIEW source code
 
 String 
