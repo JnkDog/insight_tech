@@ -3,7 +3,7 @@
 | Redis数据类型 | 底层数据类型        |
 | ------------- | ------------------- |
 | String        | 简单动态字符串(SDS) |
-| List          | 双向链表  压缩列表  |
+| List          | 压缩列表  双向链表   |
 | Hash          | 压缩列表  哈希表    |
 | Sorted Set    | 压缩列表  跳表      |
 | Set           | 哈希表   整数数组   |
@@ -44,3 +44,13 @@ SDS的结构为
 SDS的扩容的空间分配机制
 
 																
+
+
+## Hash类型 （value当中的哈希）
+### ziplist
+在配置中hash元素个数小于 hash-max-ziplist-entrise (default 512)
+同时 hash-max-ziplist-value (default 64 bytes)  才用ziplist ！！！ 
+2者都满足的时候。
+
+
+## 队列类型
