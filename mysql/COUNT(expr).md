@@ -4,3 +4,4 @@ COUNT(*) , COUNT(1) [aka COUNT(常量)] 和 COUNT(列名)
   * COUNT(*) 只是统计了表里面的行数，而不是具体的值。因此InnDB会挑选出成本较低的索引项目进行扫描，而不是主键的索引。
  
  PS: 以上都针对的是没有where的情况分析
+ *ATTENTION* ：show_table_status 只会给出大概的数据行，是一个估算的值
