@@ -78,7 +78,7 @@ common data bus
 
 2010
 1. 变长指令和固定指令 （1d）
-2. never execute a privileged instruction 	（1e）
+2. never execute a privileged instruction （1e）
 3. control和datapath   (1) Simplifies design through divide and conquer, as the datapath and control are typically of similar complexity. (2) The control is specified naturally as an algorithm with the structure of an interpreter, so it can be designed similarly to software. (3) There are several different ways to synthesise a control circuit from a control algorithm, so expressing the control as an algorithm keeps the designer’s options open. 
 4. synchroniser 的 解释 （2e）
 5. RT level (register transfer level),  （3b）

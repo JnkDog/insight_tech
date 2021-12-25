@@ -59,5 +59,54 @@ gdtdesc:
 
 gdtr寄存器的结构
 共48bits
-47 ～ 16  gdt的内存起始地址          .long      gdt地址    32bits
+47 ～ 16  gdt的内存起始地址          .long      gdt地址    32bits   （0x7c4c）
 15 ～ 0  gdt的界限（gdt的总大小）  .word  0x17         16bits
+(汇编代码已经写死了位置)
+
+```x86asm
+lgdt gdtdesc  
+  7c1e: 0f 01 16 lgdtl  (%esi)  
+  7c21: 64 7c 0f               fs jl  7c33 <protcseg+0x1>  
+movl    %cr0, %eax            # cr0 -> eax  
+  7c24: 20 c0 and    %al,%al  
+orl $CR0_PE_ON, %eax      # or 操作  
+  7c26: 66 83 c8 01 or     $0x1,%ax  
+movl    %eax, %cr0  
+  7c2a: 0f 22 c0               mov    %eax,%cr0
+ ```
+ 
+ $CR0_PE_ON = 0x1,      **or** 0x1, %eax
+ 再将eax写入cr0中，开启分段和分页
+ cr0控制是否开启分页和分段模式     PG｜PE 
+
+**注意在GDT的内容已经在内存中**
+可以利用GDB进行打印
+```shell
+(gdb) x/24xb 0x7c4c
+0x7c4c: 0x00    0x00    0x00    0x00    0x00    0x00    0x00    0x00
+0x7c54: 0xff    0xff    0x00    0x00    0x00    0x9a    0xcf    0x00
+0x7c5c: 0xff    0xff    0x00    0x00    0x00    0x92    0xcf    0x00
+```
+段描述符的大小为64bits，即8个bytes 
+其中0x7c4c是GDT初始的地址，第一段默认全为0
+第二段为代码段
+第三段为数据段
+
+**Attention**
+```
+# $protcseg = 跳转地址
+# ljmp $section, $offset
+ljmp $PROT_MODE_CSEG, $protcseg
+
+```
+由于缓存和影子寄存器的存在所以不能直接转到保护模式，有可能还是在实模式下运行。所以需要进行长跳转清空缓存。因为`ljmp`指令可以使处理器清空流水线和指令预读取队列。`PROT_MODE_CSEG`，其值为`0x08`
+
+cs寄存器中存放段选择子，但不是直白的0x1（偏移量是1），而是0x8。因为cs寄存器中记录的不单单是偏移量 ！！！第4位开始才是偏移量。具体见[Ref 1][1]
+
+
+
+
+
+## Ref
+[1] https://www.ics.uci.edu/~aburtsev/143A/2017fall/lectures/lecture07-system-boot/lecture07-system-boot.pdf 
+2. 
