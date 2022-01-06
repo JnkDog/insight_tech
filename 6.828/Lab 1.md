@@ -110,7 +110,19 @@ ljmp $PROT_MODE_CSEG, $protcseg
 cs寄存器中存放段选择子，但不是直白的0x1（偏移量是1），而是0x8。因为cs寄存器中记录的不单单是偏移量 ！！！第4位开始才是偏移量。具体见[Ref 1][1]
 
 
+## 进入保护模式后，导入内核代码
+先利用010 editor查看内核文件（kernel.img）
+![[kernel_hex.jpg]]
+前512字节为引导区，注意最后2位 55 AA，引导区标志。
+后面存放的是真正的kernel代码，elf格式。看开头的magic code (0x0200)
+根据elf格式，将kernel按照段的形式载入到内存中。
+在装载完成后，jump进入内核代码
+```
+// 进入kernel程序  
+((void (*)(void)) (ELFHDR->e_entry))();
 
+// 7d6b: ff 15 18 00 01 00 call   *0x10018  gdb 中的样子
+// 进入0x10018处
 
 
 ## Ref
