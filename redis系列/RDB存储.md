@@ -16,6 +16,7 @@ bgsave会创建子进程进行save操作，阻塞只会在fork阶段
 ![[rdb执行过程.jpg]]
 * 如果有AOF或者RDB执行，直接返回
 
+Todo: review geektime
 ## RDB对系统的影响（坏）
 1. 不同版本的RDB不兼容
 2. RDB对实时持久化做的没AOF好，毕竟每次需要fork一个子进程
