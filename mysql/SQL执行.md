@@ -1,0 +1,3 @@
+# 执行顺序
+FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY
+SELECT之前不可别名，之后可别名
