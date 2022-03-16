@@ -9,7 +9,7 @@ IOC实现控制反转
 3. beans顺序加载用depends-on，顺序上的关系如先A后B，而不是一种包含，如B中需要A对象
 
 ### 依赖注入
-XML的方式
+* XML的方式
 有参数构造需要加入property和setXXX函数在类中 （基本类型）
 -- 无参数构造
 如果不是基本类，而一个Bean需要得在xml中配置ref ref名字要和单独的bean中的name相同或者采用autwired的在xml中，
@@ -19,6 +19,12 @@ byName找setXXX中的xxx
 -- 有参数构造
  <constructor-arg/>
 
+* 注解的方式
+### @Bean注解
+@Bean注册一个Bean，name为函数名字，如果@Bean("xxx")名字为xxx
+
+### @Component注解
+需要在MainConfig中配置扫描包以及需要注解的类中加 @Component
 
 ## AOP
 代理的思想，核心业务无侵入式修改
