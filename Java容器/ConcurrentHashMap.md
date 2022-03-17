@@ -9,6 +9,13 @@
         volatile Node<K,V> next;
         ...
 }
+
+注意：ConcurrentHashMap中间有很多的不同的Node
+ForwardingNode表示一个因为扩容而正在移动中的节点；
+ReservationNode表示一个空节点，加锁时使用；
+TreeNode表示红黑树中普通的节点；
+TreeBin表示红黑树的根节点，封装了红黑树中左旋、右旋、新增节点、删除节点等维护红黑树平衡的逻辑
+
 ```
 JDK1.8中，在第一次put进入哈希表中才会调用初始化
 ```Java
@@ -129,3 +136,31 @@ final V putVal(K key, V value, boolean onlyIfAbsent) {
     }
 ```
 整体上来说，加锁直接加入到Node数组的第一节点，相比以前的阶段锁，颗粒度更加小。
+
+## Get操作
+```Java
+ public V get(Object key) {
+        Node<K,V>[] tab; Node<K,V> e, p; int n, eh; K ek;
+        int h = spread(key.hashCode());
+        if ((tab = table) != null && (n = tab.length) > 0 &&
+            (e = tabAt(tab, (n - 1) & h)) != null) {
+            // 没有扩容的情况下直接查
+            if ((eh = e.hash) == h) {
+                if ((ek = e.key) == key || (ek != null && key.equals(ek)))
+                    return e.val;
+            }
+            // hash < 0 正在迁移，使用fwd占位Node去看table中的数据
+            // ConcurrentHashMap 内部有很多类型的Node
+            // eh = -1, ForwardingNode 正在迁移
+            // eh=-2，说明该节点是一个TreeBin，此时调用TreeBin的find()方法遍历红黑树，注意：由于红黑树可能正在旋转变色，所以find()方法里会加一个读写锁。
+            else if (eh < 0)
+                return (p = e.find(h, key)) != null ? p.val : null;
+            while ((e = e.next) != null) {
+                if (e.hash == h &&
+                    ((ek = e.key) == key || (ek != null && key.equals(ek))))
+                    return e.val;
+            }
+        }
+        return null;
+    }
+```
