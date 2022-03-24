@@ -107,4 +107,11 @@ private Object[] grow(int minCapacity) {
 }
 ```
 
+## modCount的探究
+```Java
+protected transient int modCount = 0;
+```
+modCount代表structurally modified的次数，在next, remove, previous, set or add 操作中, 如果被异常修改，那么会报出ConcurrentModificationException，fail-fast机制。
 
+这里注意到modCount没加volatile关键字，我之前认为这是有问题的。后来思考下，觉得加volatile是一种过度设计
+但是ArrayList中的fail-fast机制并不是用来检测多线程条件下的容器的并发。而只是为了应付单线程中，iterator之后，还有元素插入容器造成的遍历不完全！
