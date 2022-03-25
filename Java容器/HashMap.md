@@ -29,4 +29,19 @@ resize阶段 newCap会变为原来的哈希表的2倍，如原来的(3 + 1 = 4) 
 上限则是使用8 * loadFactory（0.75）= 6
 在接着把旧哈希表的数据重新传入到新的哈希表中
 
+## hash函数
+```Java
+// 计算hash值
+static final int hash(Object key) {
+    int h;
+    // 允许为 KEY 为 null 成为 0
+    return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
+}
 
+// 计算哈希表的索引， 
+static int indexFor(int h, int length) {  //jdk1.7的源码，jdk1.8没有这个方法，但是实现原理一样的
+     return h & (length-1);  //第三步 取模运算
+}
+```
+在代码中，(h = key.hashCode()) ^ (h >>> 16) 可以保证hash值的高低位都参与运算
+计算索引的 h & (length-1); 因为length是2的n次方，减去一以后可以确保取模，加快运算速度
