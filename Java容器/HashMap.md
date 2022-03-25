@@ -18,9 +18,43 @@ put -> putVal
 if ((tab = table) == null || (n = tab.length) == 0)
     n = (tab = resize()).length;
 
-// 找到需要插入的表的位置，插入
+// 找到需要插入的表的位置，插入，如果hash表中暂时没有值
 if ((p = tab[i = (n - 1) & hash]) == null)
     tab[i] = newNode(hash, key, value, null);
+else {
+    // p != null
+    Node<K,V> e; K k;
+    if (p.hash == hash &&
+        ((k = p.key) == key || (key != null && key.equals(k))))
+        // 如果hashtable第一个就满足条件，单纯的比较key
+        e = p;
+    else if (p instanceof TreeNode)
+        // 如果是树类型就转为树插入
+        e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
+    else {
+        for (int binCount = 0; ; ++binCount) {
+            if ((e = p.next) == null) {
+                // 拉链法，读取下一个node为null后插入
+                p.next = newNode(hash, key, value, null);
+                // TREEIFY_THRESHOLD = 8, 这里是因为从第二个node开始所以上限为7
+                if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
+                    treeifyBin(tab, hash);
+                break;
+            }
+            if (e.hash == hash &&
+                ((k = e.key) == key || (key != null && key.equals(k))))
+                break;
+            p = e;
+        }
+    }
+    if (e != null) { // existing mapping for key
+        V oldValue = e.value;
+        if (!onlyIfAbsent || oldValue == null)
+            e.value = value;
+        afterNodeAccess(e);
+        return oldValue;
+    }
+}
 ```
 
 -> 在put插入哈希表成功后，记录哈希表的size自增同时会和threshold进行比较 > initalSize * loadFactory, 进入resize阶段
@@ -38,7 +72,7 @@ static final int hash(Object key) {
     return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
 }
 
-// 计算哈希表的索引， 
+// 计算哈希表的索引
 static int indexFor(int h, int length) {  //jdk1.7的源码，jdk1.8没有这个方法，但是实现原理一样的
      return h & (length-1);  //第三步 取模运算
 }
