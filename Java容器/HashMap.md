@@ -5,6 +5,10 @@
 ** 懒加载。。节省空间，等到真的要put了才进行哈希表的加载 **
 
 # HashMap put和resize过程
+```Java
+static final int DEFAULT_INITIAL_CAPACITY = 1 << 4; // aka 16 默认hash table大小 
+static final float DEFAULT_LOAD_FACTOR = 0.75f;  // 默认负载因子
+```
 size的上限应该是initalSize * loadFactory
 
 put -> putVal
@@ -21,7 +25,7 @@ if ((p = tab[i = (n - 1) & hash]) == null)
 
 -> 在put插入哈希表成功后，记录哈希表的size自增同时会和threshold进行比较 > initalSize * loadFactory, 进入resize阶段
 
-resize阶段 newCap会变为原来的哈希表的2倍，如原来的4->8
+resize阶段 newCap会变为原来的哈希表的2倍，如原来的(3 + 1 = 4) 4->8，其中的1代表已近插入数据然后的size大小
 上限则是使用8 * loadFactory（0.75）= 6
 在接着把旧哈希表的数据重新传入到新的哈希表中
 
