@@ -4,8 +4,12 @@ Comparable 是排序接口，若一个类实现了 Comparable 接口，就意味
 
 实现 Comparable 接口的类必须实现 compareTo 方法，对象就可以比较大小。假设我们通过 x.compareTo(y) 来 “比较 x 和 y 的大小”。若返回 “负数”，意味着 “x 比 y 小”；返回 “零”，意味着 “x 等于 y”；返回 “正数”，意味着 “x 大于 y”。
 
+Comparable 定义在想要实现排序对象的类的内部，并且重写compareTo方法
+
 ## Comparator
 也是一个接口，可以用来当想要排序的类没有实现Comparable接口
+Comparator 定义在想要实现排序对象的类的** 外部 **，并且重写compare方法。
+当一个类未定义比较规则，并且我们想要对其进行排序时，会使用你匿名内部类的方式或者重新自定义一个类并实现Comparator接口的方式来达到这个目的。耦合度较低
 
 ```Java
 package java.util;
