@@ -167,3 +167,11 @@ static int indexFor(int h, int length) {  //jdk1.7的源码，jdk1.8没有这个
 ```
 在代码中，(h = key.hashCode()) ^ (h >>> 16) 可以保证hash值的高低位都参与运算
 计算索引的 h & (length-1); 因为length是2的n次方，减去一以后可以确保取模，加快运算速度
+
+
+红黑树退化为链表的阈值为 6，它和链表转化为红黑树的阈值 8 不同，原因在于防止某个桶中节点个数在 8 附近震荡，导致频繁地发生转化。
+
+## 和HashTable比较
+- 线程是否安全：HashTable 使用 synchronized 关键字修饰操作方法来获得相对线程安全性；
+- 对 null 键的支持：HashTable 不支持 null 键；
+- 初始容量和扩容：HashTable 默认初始容量为 11，每次扩容，容量都为原来的 2n+1，会直接使用手动传入的容量作为初始容量。
