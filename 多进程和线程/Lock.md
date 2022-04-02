@@ -18,6 +18,112 @@ void lockInterruptibly() throws InterruptedException;  // 支持中断的api，t
 ![](./pictures/%E9%94%81%E6%AF%94%E8%BE%83.png)
 
 
+这里synchronized是非公平的锁，如果一个线程释放锁，另一个新来的线程直接进行抢占，有可能会抢走这把锁，而不经过队列。
+
+```Java
+import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+public class LockTest {
+    private static Lock fairLock = new ReentrantLockMine(true);
+    private static Lock unfairLock = new ReentrantLockMine(false);
+
+    @Test
+    public void unfair() throws InterruptedException {
+        testLock("非公平锁", unfairLock);
+    }
+
+    @Test
+    public void fair() throws InterruptedException {
+        testLock("公平锁", fairLock);
+    }
+
+    private void testLock(String type, Lock lock) throws InterruptedException {
+        System.out.println(type);
+        // 创建5个线程进行操作
+        for (int i = 0; i < 5; i++) {
+            Thread thread = new Thread(new Job(lock)){
+                public String toString() {
+                    return getName();
+                }
+            };
+            thread.setName("" + i);
+            thread.start();
+        }
+        Thread.sleep(11000);
+    }
+
+    private static class Job implements Runnable{
+        private Lock lock;
+        public Job(Lock lock) {
+            this.lock = lock;
+        }
+
+        public void run() {
+            // 每个线程加锁放锁2次
+            for (int i = 0; i < 2; i++) {
+                lock.lock();
+                try {
+                    Thread.sleep(1000);
+                    System.out.println("获取锁的当前线程[" + Thread.currentThread().getName() + "], 同步队列中的线程" + ((ReentrantLockMine)lock).getQueuedThreads() + "");
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } finally {
+                    lock.unlock();
+                }
+            }
+        }
+    }
+
+    private static class ReentrantLockMine extends ReentrantLock {  //重新实现ReentrantLock类是为了重写getQueuedThreads方法，便于我们试验的观察
+        public ReentrantLockMine(boolean fair) {
+            super(fair);
+        }
+
+        // 公平锁获取的时候会调用这个方法,看看等待队列有没有
+        @Override
+        protected Collection<Thread> getQueuedThreads() {   //获取同步队列中的线程
+            List<Thread> arrayList = new ArrayList<>(super.getQueuedThreads());
+            Collections.reverse(arrayList);
+            return arrayList;
+        }
+    }
+}
+```
+输出的结果为
+非公平锁
+获取锁的当前线程[0], 同步队列中的线程[4, 1, 2, 3]
+获取锁的当前线程[0], 同步队列中的线程[4, 1, 2, 3]
+获取锁的当前线程[4], 同步队列中的线程[1, 2, 3]
+获取锁的当前线程[4], 同步队列中的线程[1, 2, 3]
+获取锁的当前线程[1], 同步队列中的线程[2, 3]
+获取锁的当前线程[1], 同步队列中的线程[2, 3]
+获取锁的当前线程[2], 同步队列中的线程[3]
+获取锁的当前线程[2], 同步队列中的线程[3]
+获取锁的当前线程[3], 同步队列中的线程[]
+获取锁的当前线程[3], 同步队列中的线程[]
+// 在第二次获取锁的时候，非公平锁大概率能直接获取，不需要进队列
+公平锁
+获取锁的当前线程[0], 同步队列中的线程[1, 2, 3, 4]
+获取锁的当前线程[1], 同步队列中的线程[2, 3, 4, 0]
+获取锁的当前线程[2], 同步队列中的线程[3, 4, 0, 1]
+获取锁的当前线程[3], 同步队列中的线程[4, 0, 1, 2]
+获取锁的当前线程[4], 同步队列中的线程[0, 1, 2, 3]
+获取锁的当前线程[0], 同步队列中的线程[1, 2, 3, 4]
+获取锁的当前线程[1], 同步队列中的线程[2, 3, 4]
+获取锁的当前线程[2], 同步队列中的线程[3, 4]
+获取锁的当前线程[3], 同步队列中的线程[4]
+获取锁的当前线程[4], 同步队列中的线程[]
+// 第二次尝试获取锁的时候，由于有个队列判断，因此放在对队列后面，公平的体现，无法抢占
+
+Lock api是支持公平和非公平的锁
+
 ## AQS理解
 AQS属性
 
