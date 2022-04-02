@@ -19,7 +19,25 @@ void lockInterruptibly() throws InterruptedException;  // 支持中断的api，t
 
 
 ## AQS理解
+AQS属性
 
+```Java
+// 头结点，你直接把它当做 当前持有锁的线程 可能是最好理解的  存在疑惑 head是个类似空节点（不存放线程信息）
+private transient volatile Node head;
+
+// 阻塞的尾节点，每个新的节点进来，都插入到最后，也就形成了一个链表
+private transient volatile Node tail;
+
+// 这个是最重要的，代表当前锁的状态，0代表没有被占用，大于 0 代表有线程持有当前锁
+// 这个值可以大于 1，是因为锁可以重入，每次重入都加上 1
+private volatile int state;
+
+// 代表当前持有独占锁的线程，举个最重要的使用例子，因为锁可以重入
+// reentrantLock.lock()可以嵌套调用多次，所以每次用这个来判断当前线程是否已经拥有了锁
+// if (currentThread == getExclusiveOwnerThread()) {state++}
+private transient Thread exclusiveOwnerThread; //继承自AbstractOwnableSynchronizer
+
+```
 
 
 ReentrantLock的底层就是由AQS来实现的
@@ -35,7 +53,7 @@ static final class Node {
     static final Node SHARED = new Node();
     static final Node EXCLUSIVE = null;
 
-    // 唯一一个大于0的状态
+    // 唯一一个大于0的状态，代表此线程取消争夺锁
     static final int CANCELLED =  1;
     // 后面节点被挂起，不包括本身节点
     static final int SIGNAL    = -1;
@@ -129,7 +147,7 @@ static final class Node {
 
 ![[waitstatus.png]]
 
-
+这里可以简单说下 waitStatus 中 SIGNAL(-1) 状态的意思，Doug Lea 注释的是：代表后继节点需要被唤醒。也就是说这个 waitStatus 其实代表的不是自己的状态，而是后继节点的状态，我们知道，每个 node 在入队的时候，都会把前驱节点的状态改为 SIGNAL，然后阻塞，等待被前驱唤醒。这里涉及的是两个问题：有线程取消了排队、唤醒操作。其实本质是一样的，读者也可以顺着 “waitStatus代表后继节点的状态” 这种思路去看一遍源码。
 这里以公平锁为例子
 
 公平锁的实现是基于抽象类 **Sync** ,这里可以get到一些设计模式的思维方式，核心步骤父类实现，具体实现细节子类实现
@@ -171,12 +189,15 @@ static final class FairSync extends Sync {
         int c = getState();
         if (c == 0) {
             // 多了一个判断，和非公平锁比较
+            // 虽然此时此刻锁是可以用的，但是这是公平锁，既然是公平，就得讲究先来后到，
+            // 看看有没有别人在队列中等了半天了
             if (!hasQueuedPredecessors() &&
                 compareAndSetState(0, acquires)) {
                 setExclusiveOwnerThread(current);
                 return true;
             }
         }
+        // 可重入设置
         else if (current == getExclusiveOwnerThread()) {
             int nextc = c + acquires;
             if (nextc < 0)
@@ -268,6 +289,7 @@ thread2再尝试进行加锁，由于已经被thread1加锁成功，thread2就�
 
 ```java
 // 自选状态
+// CAS设置tail过程中，竞争一次竞争不到，我就多次竞争，总会排到的
 private Node enq(final Node node) {
     for (;;) {
         Node t = tail;
@@ -319,7 +341,7 @@ final boolean acquireQueued(final Node node, int arg) {
                 return interrupted; // 返回程序过程中是否被中断
             }
             
-            // 说明P为头节点且当前没有获取到锁，可能是被非公平锁抢占了
+            // 说明P为头节点且当前没有获取到锁，可能是被非公平锁抢占了，没抢过别人
             // 或者p不为头节点，要判读当前node是否被阻塞，防止无限循环
             
             // 将当前节点的前驱节点等待设置为SIGNAL，如果失败就开启下一轮循环
@@ -335,6 +357,8 @@ final boolean acquireQueued(final Node node, int arg) {
 }
 
 // 传入前驱节点和当前节点，靠前驱点判断是不是需要阻塞
+// 刚刚说过，会到这里就是没有抢到锁呗，这个方法说的是："当前线程没有抢到锁，是否需要挂起当前线程？"
+// 第一个参数是前驱节点，第二个参数才是代表当前线程的节点
 private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {  
     // 获取头节点的状态
     int ws = pred.waitStatus;  
@@ -342,14 +366,24 @@ private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
     // 如果处于唤醒状态，直接返回  
     return true;  
  if (ws > 0) { 
-	 // 如果是取消状态
+	// 如果是取消状态
+    // 前驱节点 waitStatus大于0 ，之前说过，大于0 说明前驱节点取消了排队。
+    // 这里需要知道这点：进入阻塞队列排队的线程会被挂起，而唤醒的操作是由前驱节点完成的。
+    // 所以下面这块代码说的是将当前节点的prev指向waitStatus<=0的节点，
+    // 简单说，就是为了找个好爹，因为你还得依赖它来唤醒呢，如果前驱节点取消了排队，
+    // 找前驱节点的前驱节点做爹，往前遍历总能找到一个好爹的
     do {  
         // 循环向前查找取消节点，把取消节点从列表中删了
 	    node.prev = pred = pred.prev;  
 	 } while (pred.waitStatus > 0);  
 		 pred.next = node;  
  } else { 
-	  // 设置前任节点等待状态为SIGNAL
+        // 设置前任节点等待状态为SIGNAL
+        // 仔细想想，如果进入到这个分支意味着什么
+        // 前驱节点的waitStatus不等于-1和1，那也就是只可能是0，-2，-3
+        // 在我们前面的源码中，都没有看到有设置waitStatus的，所以每个新的node入队时，waitStatu都是0
+        // 正常情况下，前驱节点是之前的 tail，那么它的 waitStatus 应该是 0
+        // 用CAS将前驱节点的waitStatus设置为Node.SIGNAL(也就是-1)，意外当前节点需要挂起来
       compareAndSetWaitStatus(pred, ws, Node.SIGNAL);  
  }  
     return false;  
@@ -370,3 +404,86 @@ private final boolean parkAndCheckInterrupt() {
 又是在什么时候释放节点通知被挂起线程
 
 cancel状态是怎么生成的 
+
+
+## 解锁操作
+```Java
+public void unlock() {
+    sync.release(1);
+}
+
+public final boolean release(int arg) {
+    // 往后看吧
+    if (tryRelease(arg)) {
+        Node h = head;
+        // 为什么需要判断 waitStatus != 0 见下面
+        if (h != null && h.waitStatus != 0)
+            unparkSuccessor(h);
+        return true;
+    }
+    return false;
+}
+
+// 回到ReentrantLock看tryRelease方法
+protected final boolean tryRelease(int releases) {
+    int c = getState() - releases;
+    // 如果释放锁和解锁不是同一个线程，报错
+    if (Thread.currentThread() != getExclusiveOwnerThread())
+        throw new IllegalMonitorStateException();
+    // 是否完全释放锁
+    boolean free = false;
+    // 其实就是重入的问题，如果c==0，也就是说没有嵌套锁了，可以释放了，否则还不能释放掉
+    if (c == 0) {
+        free = true;
+        setExclusiveOwnerThread(null);
+    }
+    setState(c);
+    return free;
+}
+
+/**
+ * Wakes up node's successor, if one exists.
+ *
+ * @param node the node
+ */
+// 唤醒后继节点
+// 从上面调用处知道，参数node是head头结点
+private void unparkSuccessor(Node node) {
+    /*
+     * If status is negative (i.e., possibly needing signal) try
+     * to clear in anticipation of signalling.  It is OK if this
+     * fails or if status is changed by waiting thread.
+     */
+    int ws = node.waitStatus;
+    // 如果head节点当前waitStatus<0, 将其修改为0
+    if (ws < 0)
+        compareAndSetWaitStatus(node, ws, 0);
+    /*
+     * Thread to unpark is held in successor, which is normally
+     * just the next node.  But if cancelled or apparently null,
+     * traverse backwards from tail to find the actual
+     * non-cancelled successor.
+     */
+    // 下面的代码就是唤醒后继节点，但是有可能后继节点取消了等待（waitStatus==1） 为什么会取消等待？
+    // 从队尾往前找，找到waitStatus<=0的所有节点中排在最前面的
+    Node s = node.next;
+    if (s == null || s.waitStatus > 0) {
+        s = null;
+        // 从后往前找，仔细看代码，不必担心中间有节点取消(waitStatus==1)的情况
+        for (Node t = tail; t != null && t != node; t = t.prev)
+            if (t.waitStatus <= 0)
+                s = t;
+    }
+    if (s != null)
+        // 唤醒线程
+        LockSupport.unpark(s.thread);
+}
+```
+release函数中
+这里的判断条件为什么是h != null && h.waitStatus != 0？
+
+* h == null Head还没初始化。初始情况下，head == null，第一个节点入队，Head会被初始化一个虚拟节点。所以说，这里如果还没来得及入队，就会出现head == null 的情况。
+
+* h != null && waitStatus == 0 表明后继节点对应的线程仍在运行中，不需要唤醒。 不理解
+
+* h != null && waitStatus < 0 表明后继节点可能被阻塞了，需要唤醒。
