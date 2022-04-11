@@ -53,3 +53,6 @@ epoll 池添加 fd 的时候，调用 file_operations->poll ，把这个 fd 就�
 epoll 池核心的两个数据结构：红黑树和就绪列表。红黑树是为了应对用户的增删改需求，就绪列表是 fd 事件就绪之后放置的特殊地点，epoll 池只需要遍历这个就绪链表，就能给用户返回所有已经就绪的 fd 数组；
 
 具体select poll epoll理解看本目录下的相关文章
+
+https://www.bilibili.com/video/BV1Rq4y1s7uu/?spm_id_from=333.788.recommend_more_video.-1
+https://www.bilibili.com/video/BV1qJ411w7du?spm_id_from=444.41.top_right_bar_window_history.content.click
