@@ -593,3 +593,13 @@ release函数中
 * h != null && waitStatus == 0 表明后继节点对应的线程仍在运行中，不需要唤醒。 不理解
 
 * h != null && waitStatus < 0 表明后继节点可能被阻塞了，需要唤醒。
+
+
+## 公平和非公平碎碎念
+非公平 lock的时候，先进行CAS尝试获取，然后不行再调用AQS的acquire方法
+
+在acquire中，模版方法调用tryAcquire先，非公平调用nonfairTryAcquire，再进行CAS操作，不行再进入等待队列
+
+nonfairTryAcquire还会再tryLock中使用，所以写在syn内部类中。
+
+公平锁直接调用AQS acquire方法，但是在tryAcquire中，公平锁会判断等待队列中有没有需要等待的节点，再进行cas操作，如果有就上锁失败。 公平的体现
