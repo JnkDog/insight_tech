@@ -63,14 +63,18 @@ parseOptions在解析参数后会下标参数不对应一些flag的部分，例�
 
 ### Redis数据库操作命令读取
 bug 输入单空格按回车后会出现段错误
+
+修复思路，加入对argc的判断，如果argc为0就不要发送命令
+
 \n 换行
 \t 4个空格？
 
 ```c
 // prompt(line, size)输出>> 并读入指令到line
 while (prompt(line, size)) {
+    // 计数器
     argc = 0;
-
+    // *ap保存解析出的字符, 注意在调用strsep的时候，line指针会被移动，所以最后需要重制
     for (ap = args; (*ap = strsep(&line, " \t")) != NULL;) {
         if (**ap != '\0') {
             if (argc >= max) break;
@@ -81,4 +85,10 @@ while (prompt(line, size)) {
         }
     }
 
+    config.repeat = 1;
+    // bug 出现的原因，塞入空指针
+    cliSendCommand(argc, convertToSds(argc, args));
+    // line 指针重新移到头部
+    line = buffer;
+}
 ```
