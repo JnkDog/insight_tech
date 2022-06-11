@@ -23,12 +23,7 @@ Tomasulo算法中由保留站提供。
 
 2019
 reservation stations
-busy bits                 3合一解释
-common data bus
-
-2017
-1.   CISC和RISC的区别。RISC call指令的实现 （1a）
-2.  functional unit的理解 （1c）
+busy bits                 3合一解释2.  functional unit的理解 （1c）
 3.  中断的程序处理 （2a）
 4.  组相连的cache （3a）
 5.  bypassing的解释 （3b）
