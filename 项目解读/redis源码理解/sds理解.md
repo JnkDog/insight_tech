@@ -8,7 +8,11 @@ struct sdshdr {
     char buf[];
 };
 ```
-定义在sds.h中，在计算头大小的时候，sizeof(sdshdr) 长度为16，2个long类型 8+8，char buf[]不计算
+定义在sds.h中，在计算头大小的时候，sizeof(sdshdr) 长度为16，2个long类型 8+8，char buf[]不计算,为什么呢？
+You can only have one flexible array member in a struct, and it must always be the last member of the struct. In other words, in this case you've gone wrong before you call malloc, to the point that there's really no way to call malloc correctly for this struct.
+
+char buf[]长度不知道，所以编译器默认不分配空间，malloc需要自己定义空间长度。而且只能有一个flexiable的成员
+
 在分配buf[]空间的时候，需要注意 +1，例如 "get" 长度为3，计算出后buf的长度为 3 + 1 = 4，末尾加 '\0'
 这个结构体分配在堆上面！！！
 
