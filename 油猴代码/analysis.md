@@ -17,4 +17,6 @@ df_sorted = df.sort_values('cpu', ascending=False)
 df_unique = df_sorted.drop_duplicates(subset=['region', 'az'], keep='first')
 
 print(df_unique)
+
+df_unique.to_excel('output.xlsx', sheet_name='unique_data')
 ```
