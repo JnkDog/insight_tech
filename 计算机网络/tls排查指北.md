@@ -1,0 +1,8 @@
+# 有用的命令
+## openssl
+```shell
+openssl s_client -tlsextdebug -showcerts -connect 网站:443
+```
+
+## 如何解密
+环境变量创建。SSLKEYLOGFILE，映射文件 key.log, wireshark在 pre-master-secret log file中写进去就好了
