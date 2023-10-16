@@ -14,3 +14,11 @@ echo | openssl s_client -showcerts -connect zoom.us:443 -servername zoom.us 2> /
 
 ## ref
 https://www.kawabangga.com/all-posts
+
+
+sudo apt install -y apt-transport-https ca-certificates curl
+
+curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | sudo apt-key add -
+
+ 
+sudo apt update
