@@ -1,5 +1,6 @@
 import socket
 import json
+import time
 
 def send_json_post_request(host, port, path, headers, json_data):
     # 将 JSON 数据转换为字符串
@@ -22,19 +23,32 @@ def send_json_post_request(host, port, path, headers, json_data):
 
         # 发送 HTTP 请求
         s.sendall(request_header.encode())
+        print_cur_time('before 0.2s ')
+        time.sleep(2)
         s.sendall(request_body.encode())
-
+        print_cur_time('after')
+        #40948 53846
         # 接收服务器响应
         response = s.recv(1024)
 
     print("Server response:")
     print(response.decode())
 
+def print_cur_time(show_str):
+    print(f"======== {show_str} =======")
+    current_timestamp = time.time()
+    structured_time = time.localtime(current_timestamp)
+    milliseconds = int((current_timestamp - int(current_timestamp)) * 1000)
+    formatted_time = time.strftime("%Y-%m-%d %H:%M:%S.{:03d}", structured_time).format(milliseconds)
+    print("Current Time with Milliseconds:", formatted_time)
+
+
+
 if __name__ == "__main__":
     # 设置服务器的主机、端口和路径
     server_host = "localhost"
     server_port = 80
-    server_path = "/post"
+    server_path = "/upstream"
 
     # 设置 JSON 格式的数据
     json_data = {"key1": "value1", "key2": "value2"}
