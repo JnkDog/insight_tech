@@ -49,3 +49,5 @@ root@master:~/demo# ip -details link show flannel.1
 
 ## 参考
 https://cloud.tencent.com/developer/article/1819134   
+
+
