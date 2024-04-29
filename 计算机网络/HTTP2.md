@@ -12,7 +12,69 @@ curl offers the --http2-prior-knowledge command line option to enable use of HTT
 
 4. nghttp 调试
 
+## okhttp2的http2诡异的实现
+1. 先用javaagent拿到pre master key. 先觉条件是有这个jar包，idea放在vm options下
+-javaagent:extract-tls-secrets-4.0.0.jar=tls.log
+2. 测试代码，okhttp版本 3.12.6
+```java
+/**
+ <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>3.12.6</version>
+        </dependency>
+**/
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        // default 5min
+        ConnectionPool pool = new ConnectionPool(2, 30, TimeUnit.SECONDS);
+        OkHttpClient client = new OkHttpClient.Builder().connectionPool(pool).build();
+        String urlTest1 = "xxx";
+        String urlTest2 = "xxx";
+        Request request1 = new Request.Builder().url(urlTest1).get().build();
+        Request request2 = new Request.Builder().url(urlTest2).get().build();
+        Request request3 = new Request.Builder().url("xxx").get().build();
+        Call call1 = client.newCall(request1);
+        Call call2 = client.newCall(request2);
+        Call call3 = client.newCall(request3);
+        call1.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                System.out.printf("t1请求失败,异常信息为: {%s}", e.getMessage());
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                System.out.printf("t1请求成功: {%s}\n", response.code());
+            }
+        });
+        call2.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                System.out.printf("t2请求失败,异常信息为: {%s}", e.getMessage());
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                System.out.printf("t2请求成功: {%s}\n", response.code());
+            }
+        });
+
+        call3.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                System.out.printf("t3请求失败,异常信息为: {%s}", e.getMessage());
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                System.out.printf("t3请求成功: {%s}\n", response.code());
+            }
+        });
+        System.out.println("ok ... ???");
+    }
+}
+```
+抓包发现他的实现是很奇怪的，具体操作是
 ====
 
-116.63.135.144 ok
-114.217.16.130 not ok
