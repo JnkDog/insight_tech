@@ -76,5 +76,58 @@ public class Main {
 }
 ```
 抓包发现他的实现是很奇怪的，具体操作是
-====
+====    
 
+```java
+public class Main {
+//    private static final Logger logger = LoggerFactory.getLogger();
+    public static final int CONNECTION_POOL_SIZE = 20;
+
+    public static final int CONNECTION_ALIVE_TIMEOUT = 5;
+
+    public static final String BASE_URL = "xxx";
+
+    public static void main(String[] args) throws InterruptedException {
+        // default 5min
+        ConnectionPool pool = new ConnectionPool(CONNECTION_POOL_SIZE, CONNECTION_ALIVE_TIMEOUT, TimeUnit.MINUTES);
+        OkHttpClient client = new OkHttpClient.Builder().connectionPool(pool).build();
+        testSendRequestByTime(20, client);
+        Thread.sleep(2000);
+        String delayTwoSecondUrl = new StringBuilder(BASE_URL).append("test").append("/delay-2").toString();
+        Request request = new Request.Builder().url(delayTwoSecondUrl).get().build();
+        Call call = client.newCall(request);
+        call.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                System.out.printf("delay请求失败,异常信息为: {%s}", e.getMessage());
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                System.out.printf("delay请求成功: {%s}\n", response.code());
+            }
+        });
+        System.out.println("what???");
+    }
+
+    public static void testSendRequestByTime(int times, OkHttpClient client) {
+        for (int i = 0; i < times; i++) {
+            String testUrl = new StringBuilder(BASE_URL).append("test").append(i).toString();
+            Request request = new Request.Builder().url(testUrl).get().build();
+            Call call = client.newCall(request);
+            int idx = i;
+            call.enqueue(new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    System.out.printf("第{%d}次请求失败,异常信息为: {%s}", idx + 1, e.getMessage());
+                }
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    System.out.printf("第{%d}次请求成功: {%s}\n", idx + 1, response.code());
+                }
+            });
+        }
+    }
+}
+```
